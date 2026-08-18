@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Hollow Archive</title>
+<style>
+  /* ============ DESIGN TOKENS ============
+     Palette: ink-night bg, aged-parchment dialogue box,
+     brass accent (choices/UI), embercoal for tension, 
+     wisplight teal for magic beats.
+     Type: 'Cormorant Garamond' (display/names), 'EB Garamond' (body/narration)
+  =========================================== */
+  :root{
+    --ink-night:#11131c;
+    --ink-deeper:#0a0b12;
+    --parchment:#ece3c8;
+    --parchment-dim:#d8cca6;
+    --brass:#b08d4f;
+    --brass-bright:#d4ac6e;
+    --embercoal:#6b2737;
+    --wisplight:#4f9a8f;
+    --text-dark:#241d13;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=EB+Garamond:ital@0;1&display=swap');
+
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--ink-deeper);
+    font-family:'EB Garamond', serif;
+    overflow:hidden;
+  }
+
+  #stage{
+    position:relative;
+    width:100%; height:100vh; min-height:560px;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    background:
+      radial-gradient(ellipse at 50% 20%, #232840 0%, var(--ink-night) 55%, var(--ink-deeper) 100%);
+    transition:background 1.2s ease;
+  }
+  /* scene mood variants, swapped via JS by adding a class to #stage */
+  #stage.mood-tense{ background: radial-gradient(ellipse at 50% 25%, #3a1620 0%, #1a0e11 55%, var(--ink-deeper) 100%); }
+  #stage.mood-magic{ background: radial-gradient(ellipse at 50% 20%, #163531 0%, #0d1c1a 55%, var(--ink-deeper) 100%); }
+  #stage.mood-warm{  background: radial-gradient(ellipse at 50% 20%, #2c2415 0%, #171207 55%, var(--ink-deeper) 100%); }
+
+  /* flickering candle glow, signature ambient element */
+  #candleglow{
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    pointer-events:none;
+    background: radial-gradient(circle at 50% 100%, rgba(212,172,110,0.10), transparent 45%);
+    animation: flicker 3.6s infinite ease-in-out;
+    mix-blend-mode:screen;
+  }
+  @keyframes flicker{
+    0%,100%{opacity:.85;} 20%{opacity:1;} 35%{opacity:.7;} 50%{opacity:.95;} 70%{opacity:.8;} 85%{opacity:1;}
+  }
+
+  /* faint grain / dust texture over everything */
+  #grain{
+    position:absolute; inset:0; pointer-events:none; opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  #title-eyebrow{
+    position:absolute; top:34px; left:0; right:0; text-align:center;
+    color:var(--brass); letter-spacing:.35em; font-size:12px; text-transform:uppercase;
+    font-family:'EB Garamond', serif; opacity:.75;
+  }
+
+  /* Top Right Action Bar */
+  #top-bar-controls{
+    position:absolute; top:32px; right:34px; z-index:6;
+    display:flex; gap:8px;
+  }
+  .top-bar-btn{
+    all:unset; cursor:pointer;
+    color:var(--brass); font-family:'Cormorant Garamond', serif;
+    font-size:13px; letter-spacing:.15em; text-transform:uppercase;
+    border:1px solid var(--brass); padding:5px 12px; border-radius:2px; opacity:.75;
+    background:rgba(17,19,28,0.6);
+    transition:opacity .2s ease, background .2s ease;
+  }
+  .top-bar-btn:hover{ opacity:1; background:rgba(176,141,79,0.15); }
+
+  #vn-box{
+    position:relative;
+    width:min(760px, 92vw);
+    margin-bottom:36px;
+    background:linear-gradient(180deg, var(--parchment) 0%, var(--parchment-dim) 100%);
+    border:1px solid var(--brass);
+    border-radius:2px;
+    box-shadow:0 20px 60px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.08);
+    padding:26px 30px 24px;
+    z-index:2;
+  }
+  #vn-box::before{ /* wax accent at top-left corner */
+    content:"";
+    position:absolute; top:-10px; left:26px;
+    width:22px; height:22px; border-radius:50%;
+    background:var(--embercoal);
+    box-shadow:0 2px 4px rgba(0,0,0,.4);
+  }
+
+  #speaker{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600; font-size:20px; letter-spacing:.06em;
+    color:var(--embercoal);
+    margin-bottom:6px;
+    min-height:24px;
+  }
+
+  #vn-text{
+    color:var(--text-dark);
+    font-size:19px; line-height:1.55;
+    min-height:96px;
+    font-style:normal;
+    cursor:pointer;
+  }
+  #vn-text em{ color:var(--wisplight); font-style:italic; }
+
+  #choices{
+    margin-top:18px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .choice-btn{
+    all:unset;
+    cursor:pointer;
+    display:block;
+    font-family:'Cormorant Garamond', serif;
+    font-size:18px; font-weight:600;
+    color:var(--parchment);
+    background:linear-gradient(180deg, #22283a, #171b26);
+    border:1px solid var(--brass);
+    padding:11px 18px;
+    border-radius:2px;
+    transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
+  }
+  .choice-btn:hover{
+    background:linear-gradient(180deg, #2c3348, #1c2130);
+    transform:translateX(4px);
+    box-shadow:0 4px 14px rgba(176,141,79,.25);
+  }
+  .choice-btn:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .choice-btn::before{ content:"— "; color:var(--brass); }
+
+  #advance-hint{
+    margin-top:14px; font-size:13px; color:#7a6f52; text-align:right;
+    letter-spacing:.04em; cursor:pointer; user-select:none;
+  }
+
+  #restart-wrap{ text-align:center; margin-top:14px; }
+  #restart-btn{
+    all:unset; cursor:pointer; color:var(--brass);
+    font-family:'Cormorant Garamond', serif; font-size:15px; letter-spacing:.08em;
+    border-bottom:1px solid var(--brass); padding-bottom:2px;
+  }
+  #restart-btn:hover{ color:var(--brass-bright); border-color:var(--brass-bright); }
+
+  #ending-tag{
+    font-family:'Cormorant Garamond', serif;
+    text-align:center; color:var(--brass-bright);
+    letter-spacing:.25em; text-transform:uppercase; font-size:13px;
+    margin-bottom:8px; display:none;
+  }
+
+  /* Screen shake animation */
+  @keyframes shake{
+    0%,100%{ transform:translate(0,0); }
+    20%{ transform:translate(-3px,2px); }
+    40%{ transform:translate(3px,-2px); }
+    60%{ transform:translate(-2px,-1px); }
+    80%{ transform:translate(2px,1px); }
+  }
+  #stage.shake{ animation:shake .35s ease; }
+
+  /* Backlog Panel */
+  #log-panel{
+    display:none;
+    position:absolute; top:74px; right:34px; z-index:7;
+    width:min(400px, 86vw); max-height:60vh; overflow-y:auto;
+    background:var(--ink-deeper); border:1px solid var(--brass);
+    padding:18px 20px; border-radius:2px;
+    box-shadow:0 12px 40px rgba(0,0,0,.7);
+  }
+  #log-panel.open{ display:block; }
+  #log-panel .log-entry{ color:var(--parchment-dim); font-size:14px; line-height:1.5; margin-bottom:14px; border-bottom:1px solid rgba(176,141,79,0.15); padding-bottom:10px; }
+  #log-panel .log-entry:last-child{ border-bottom:none; margin-bottom:0; }
+  #log-panel .log-speaker{ color:var(--brass-bright); font-family:'Cormorant Garamond', serif; font-weight:600; }
+
+  /* Modal Dialog for Save/Load */
+  .modal-backdrop{
+    position:fixed; inset:0; z-index:20;
+    background:rgba(10,11,18,0.8);
+    backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal-card{
+    width:min(460px, 90vw);
+    background:linear-gradient(180deg, var(--parchment) 0%, var(--parchment-dim) 100%);
+    border:1px solid var(--brass);
+    box-shadow:0 20px 60px rgba(0,0,0,.8);
+    padding:24px; border-radius:2px;
+  }
+  .modal-header{
+    font-family:'Cormorant Garamond', serif; font-size:22px; font-weight:600;
+    color:var(--embercoal); margin-bottom:6px;
+  }
+  .modal-sub{ font-size:14px; color:var(--text-dark); margin:0 0 12px; }
+  #save-code-input{
+    width:100%; height:75px; resize:none;
+    background:#161822; color:var(--parchment);
+    border:1px solid var(--brass); border-radius:2px;
+    padding:8px 10px; font-family:monospace; font-size:12px;
+  }
+  .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px; }
+  .modal-actions .choice-btn{ font-size:15px; padding:7px 16px; }
+  .modal-actions .choice-btn::before{ content:""; }
+
+  #keyboard-hint{
+    position:absolute; bottom:14px; left:0; right:0; text-align:center;
+    font-size:11px; color:#5a5342; letter-spacing:.08em; user-select:none; z-index:1;
+  }
+
+  #ember-canvas{ position:absolute; inset:0; pointer-events:none; z-index:0; }
+
+  @media (prefers-reduced-motion: reduce){
+    #candleglow{ animation:none; }
+    #stage.shake{ animation:none; }
+  }
+
+  @media (max-width:520px){
+    #top-bar-controls{ top:18px; right:18px; }
+    #title-eyebrow{ top:20px; }
+    #vn-box{ padding:20px 18px 18px; margin-bottom:28px; }
+    #vn-text{ font-size:17px; min-height:120px; }
+    #speaker{ font-size:18px; }
+    #log-panel{ top:60px; right:18px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="stage" class="mood-warm">
+  <canvas id="ember-canvas"></canvas>
+  <div id="candleglow"></div>
+  <div id="grain"></div>
+  <div id="title-eyebrow">The Hollow Archive</div>
+
+  <div id="top-bar-controls">
+    <button id="save-btn" class="top-bar-btn">Save</button>
+    <button id="load-btn" class="top-bar-btn">Load</button>
+    <button id="log-btn" class="top-bar-btn">Log</button>
+  </div>
+
+  <div id="log-panel"></div>
+
+  <div id="vn-box">
+    <div id="ending-tag"></div>
+    <div id="speaker"></div>
+    <div id="vn-text"></div>
+    <div id="choices"></div>
+    <div id="advance-hint" style="display:none;">continue ▸</div>
+  </div>
+
+  <div id="restart-wrap" style="display:none;">
+    <button id="restart-btn">Begin again</button>
+  </div>
+
+  <div id="keyboard-hint">space / click to continue &nbsp;·&nbsp; number keys for choices</div>
+</div>
+
+<!-- Modal Dialog for Save/Load -->
+<div id="code-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal-card">
+    <div id="modal-title" class="modal-header">Save Archive</div>
+    <p id="modal-desc" class="modal-sub">Copy this save code to keep your place:</p>
+    <textarea id="save-code-input" spellcheck="false"></textarea>
+    <div class="modal-actions">
+      <button id="modal-action-btn" class="choice-btn">Action</button>
+      <button id="modal-close-btn" class="choice-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   THE HOLLOW ARCHIVE — branching fantasy-mystery VN
+   ============================================================ */
+
+const STORY = {
+
+  start: {
+    speaker: "",
+    mood: "warm",
+    text: "Rain on old stone. You are Isra Venn, an archivist of the Ashglass Repository — a library built into a hollowed cliff, where the dead sometimes leave their books unfinished.\n\nTonight the Repository's senior scholar, <em>Master Corvin Rell</em>, has not answered his bell in three days. His study door is locked from the inside.",
+    next: "n1"
+  },
+
+  n1: {
+    speaker: "",
+    mood: "warm",
+    text: "You stand before his door with a lantern and a set of brass keys that shouldn't exist. The wax seal on the doorframe — the Repository's own ward — has been broken, not by force, but from the <em>inside</em>.",
+    choices: [
+      { label: "Break the ward yourself and enter", next: "n2_enter" },
+      { label: "Search his desk logs in the reading hall first", next: "n2_logs" }
+    ]
+  },
+
+  n2_enter: {
+    speaker: "",
+    mood: "tense",
+    text: "You press your palm to the broken seal. It's cold — colder than wax should ever be. The door swings open on its own, as if it had been waiting only for you.\n\nThe study is empty. Every book on Corvin's shelves has been turned backward, spines to the wall, pages facing out — thousands of blank white edges, like teeth.",
+    next: "n3"
+  },
+
+  n2_logs: {
+    speaker: "",
+    mood: "warm",
+    text: "In the reading hall you find Corvin's last requisition slip: he'd asked for a text from the Repository's <em>sealed</em> collection — books too dangerous to be read twice by the same person. The slip is dated the night he vanished.",
+    next: "n3_logs2"
+  },
+
+  n3_logs2: {
+    speaker: "",
+    mood: "warm",
+    text: "A note is pinned beneath it, in Corvin's hand: <em>\"If I do not return the volume by dawn, do not follow the voice that sounds like me.\"</em>",
+    next: "n3"
+  },
+
+  n3: {
+    speaker: "",
+    mood: "tense",
+    text: "A draft moves through the corridor that shouldn't exist — the Repository has no windows this deep. It carries a voice, faint and familiar, calling your name from the stacks below.",
+    choices: [
+      { label: "Follow the voice down into the stacks", next: "n4_follow" },
+      { label: "Refuse, and light every lamp in the hall instead", next: "n4_refuse" }
+    ]
+  },
+
+  n4_follow: {
+    speaker: "",
+    mood: "tense",
+    text: "You descend. The voice grows clearer with each step, warm and rasping, exactly Corvin's — until you round the last shelf and find only a mirror of black glass, propped where no mirror has ever stood, and your own reflection <em>smiling before you do</em>.",
+    next: "n5_mirror"
+  },
+
+  n4_refuse: {
+    speaker: "",
+    mood: "warm",
+    text: "You trust the note over the voice. Lamp by lamp, you push back the dark — and by the third lamp, the calling stops, as if something had lost patience and gone looking elsewhere for an easier door.",
+    next: "n5_lamps"
+  },
+
+  n5_mirror: {
+    speaker: "The Glass",
+    mood: "tense",
+    text: "\"You always were better at finding things than I was,\" it says, in Corvin's voice, through Corvin's smile. \"Come find me properly, Isra. I'm still in here. Somewhere.\"",
+    choices: [
+      { label: "Touch the glass", next: "end_bound_setup" },
+      { label: "Recite the Repository's binding ward at it", next: "n6_ward" },
+      { label: "Drive the impossible brass key into the crack", next: "end_escape" }
+    ]
+  },
+
+  n6_ward: {
+    speaker: "",
+    mood: "magic",
+    text: "You speak the old ward — the one carved above every Repository door — and the glass shudders like water struck by a stone. The smiling reflection cracks down the middle. Behind it, faint as breath on cold glass, you see Corvin's true face, eyes wide, mouthing one word: <em>\"Book.\"</em>",
+    next: "n7_converge"
+  },
+
+  n5_lamps: {
+    speaker: "",
+    mood: "warm",
+    text: "With the hall lit, you find what the dark had been hiding: a trail of ash leading to the sealed collection's vault — its door standing open for the first time in forty years.",
+    next: "n7_converge"
+  },
+
+  n7_converge: {
+    speaker: "",
+    mood: "magic",
+    text: "At the vault you find it: the sealed volume Corvin borrowed, lying open on a reading stand, its pages still turning by themselves in a wind that isn't there. The book's title, in old Repository script, reads: <em>\"A Record of Those Who Read Too Well.\"</em>",
+    choices: [
+      { label: "Close the book", next: "end_truth" },
+      { label: "Read the open page aloud, to call him back", next: "end_escape_check" }
+    ]
+  },
+
+  end_escape_check: {
+    speaker: "",
+    mood: "magic",
+    text: "You read the page aloud. The wind in the room answers — and Corvin's voice, or something wearing it, answers back from everywhere at once: <em>\"Careful. That's how I got in too.\"</em>",
+    choices: [
+      { label: "Keep reading, and reach for him through the words", next: "end_bound" },
+      { label: "Stop, and slam the book shut instead", next: "end_truth" }
+    ]
+  },
+
+  end_bound_setup: {
+    speaker: "",
+    mood: "tense",
+    text: "You touch the black glass. It is not cold, as glass should be — it is warm, like a hand that has been waiting to be held.",
+    next: "end_bound"
+  },
+
+  /* ---------------- ENDINGS ---------------- */
+
+  end_truth: {
+    ending: "The Reader's Ending",
+    speaker: "",
+    mood: "warm",
+    text: "You close the book. Somewhere behind the sealed vault's silence, you hear — faintly, once — Corvin's actual laugh, relieved, before it fades like a candle pinched out on purpose.\n\nHe is never found. But the ash trail stops that night, and no bell in the Repository ever rings unanswered again. You take his old desk, and his old warning, and you never once read a sealed book twice.",
+    ending_final: true
+  },
+
+  end_bound: {
+    ending: "The Bound Ending",
+    speaker: "",
+    mood: "tense",
+    text: "The words pull you in the way deep water pulls a stone. You find him there, in the space between pages — not lost, exactly, but <em>filed</em>, the way the Repository files everything it isn't ready to let go of.\n\nYou both make it back out. But something of the book's hush follows you home, and now, some nights, it is your voice that calls softly from the stacks, and you are not entirely sure it is only yours.",
+    ending_final: true
+  },
+
+  end_escape: {
+    ending: "The Locksmith's Ending",
+    speaker: "",
+    mood: "magic",
+    text: "You do not read, and you do not touch the glass. You drive the impossible brass key into the mirror's hairline crack and turn it backward, the way you'd turn a key in any ordinary lock.\n\nThe reflection shatters into silent dust. Corvin stumbles out from behind it — exhausted, grey at the temples now, but entirely, ordinarily human. You lock the sealed vault yourself that night, and throw the keys that shouldn't exist into the chasm below the cliff, where the Repository keeps its other unanswerable things.",
+    ending_final: true
+  }
+};
+
+/* ------------- ENGINE STATE & DOM ------------- */
+
+const el = {
+  stage: document.getElementById('stage'),
+  speaker: document.getElementById('speaker'),
+  text: document.getElementById('vn-text'),
+  choices: document.getElementById('choices'),
+  hint: document.getElementById('advance-hint'),
+  restartWrap: document.getElementById('restart-wrap'),
+  restartBtn: document.getElementById('restart-btn'),
+  endingTag: document.getElementById('ending-tag'),
+  logBtn: document.getElementById('log-btn'),
+  logPanel: document.getElementById('log-panel'),
+};
+
+const modal = {
+  backdrop: document.getElementById('code-modal'),
+  title: document.getElementById('modal-title'),
+  desc: document.getElementById('modal-desc'),
+  input: document.getElementById('save-code-input'),
+  actionBtn: document.getElementById('modal-action-btn'),
+  closeBtn: document.getElementById('modal-close-btn'),
+  saveBtn: document.getElementById('save-btn'),
+  loadBtn: document.getElementById('load-btn')
+};
+
+let typing = null;
+let currentNode = null;
+let currentFullHTML = "";
+let currentOnDone = null;
+let history = [];
+
+function setMood(mood){
+  el.stage.className = 'mood-' + (mood || 'warm');
+  if(mood === 'tense'){
+    el.stage.classList.add('shake');
+    setTimeout(() => el.stage.classList.remove('shake'), 350);
+  }
+}
+
+/* Tokenize HTML to prevent slicing inside tags during typewriter effect */
+function tokenize(html){
+  return html.match(/<[^>]+>|[^<]/g) || [];
+}
+
+function typeText(html, done){
+  clearInterval(typing);
+  typing = null;
+  currentFullHTML = html;
+  currentOnDone = done;
+  const tokens = tokenize(html);
+  let i = 0;
+  el.text.innerHTML = "";
+  typing = setInterval(() => {
+    i++;
+    el.text.innerHTML = tokens.slice(0, i).join("");
+    if(i >= tokens.length){
+      finishTyping();
+    }
+  }, 14);
+}
+
+function finishTyping(){
+  clearInterval(typing);
+  typing = null;
+  el.text.innerHTML = currentFullHTML;
+  if(currentOnDone){
+    const cb = currentOnDone;
+    currentOnDone = null;
+    cb();
+  }
+}
+
+function renderNode(id){
+  currentNode = id;
+  const node = STORY[id];
+  setMood(node.mood);
+  el.speaker.textContent = node.speaker || "";
+  el.choices.innerHTML = "";
+  el.hint.style.display = "none";
+  el.restartWrap.style.display = "none";
+  el.endingTag.style.display = "none";
+
+  if(node.ending){
+    el.endingTag.style.display = "block";
+    el.endingTag.textContent = node.ending;
+  }
+
+  const html = node.text.replace(/\n/g, "<br><br>");
+  history.push({ speaker: node.speaker || "", html });
+  renderLog();
+
+  typeText(html, () => {
+    if(node.ending_final){
+      el.restartWrap.style.display = "block";
+      return;
+    }
+    if(node.choices){
+      node.choices.forEach((c, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = c.label;
+        btn.onclick = () => {
+          playChime(idx);
+          renderNode(c.next);
+        };
+        el.choices.appendChild(btn);
+      });
+    } else if(node.next){
+      el.hint.style.display = "block";
+      el.hint.onclick = () => renderNode(node.next);
+    }
+  });
+}
+
+/* Click on dialogue text: skip typewriter if running, else advance linear beat */
+el.text.onclick = () => {
+  if(modal.backdrop.style.display === 'flex') return;
+  if(typing){
+    finishTyping();
+  } else {
+    const node = STORY[currentNode];
+    if(node.next && !node.choices && !node.ending_final){
+      renderNode(node.next);
+    }
+  }
+};
+
+/* Keyboard Navigation */
+document.addEventListener('keydown', (e) => {
+  if(modal.backdrop.style.display === 'flex') return;
+
+  if(e.code === 'Space' || e.code === 'Enter'){
+    e.preventDefault();
+    if(typing){ finishTyping(); return; }
+    const node = STORY[currentNode];
+    if(node.next && !node.choices && !node.ending_final){
+      renderNode(node.next);
+    }
+    return;
+  }
+  const num = parseInt(e.key, 10);
+  if(!isNaN(num) && num >= 1 && num <= 9){
+    const btns = el.choices.querySelectorAll('.choice-btn');
+    if(btns[num - 1]) btns[num - 1].click();
+  }
+});
+
+/* Backlog Log System */
+function renderLog(){
+  el.logPanel.innerHTML = history.map(h =>
+    `<div class="log-entry">${h.speaker ? `<div class="log-speaker">${h.speaker}</div>` : ""}${h.html}</div>`
+  ).join("");
+  if(el.logPanel.classList.contains('open')){
+    el.logPanel.scrollTop = el.logPanel.scrollHeight;
+  }
+}
+el.logBtn.onclick = () => {
+  el.logPanel.classList.toggle('open');
+  if(el.logPanel.classList.contains('open')){
+    el.logPanel.scrollTop = el.logPanel.scrollHeight;
+  }
+};
+
+el.restartBtn.onclick = () => {
+  history = [];
+  renderNode('start');
+};
+
+/* ================= SAVE / LOAD SYSTEM (Base64) ================= */
+
+function generateSaveCode(){
+  const payload = {
+    v: 1,
+    node: currentNode,
+    history: history,
+    timestamp: Date.now()
+  };
+  try {
+    return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  } catch(e) {
+    return btoa(JSON.stringify({ v: 1, node: currentNode, history: [] }));
+  }
+}
+
+function applySaveCode(codeStr){
+  try {
+    const raw = decodeURIComponent(escape(atob(codeStr.trim())));
+    const data = JSON.parse(raw);
+    if(!data.node || !STORY[data.node]) throw new Error("Invalid Node ID");
+
+    history = Array.isArray(data.history) ? data.history : [];
+    renderLog();
+    renderNode(data.node);
+    return true;
+  } catch(err) {
+    alert("Invalid save code string. Please verify the copied code.");
+    return false;
+  }
+}
+
+modal.saveBtn.onclick = () => {
+  const code = generateSaveCode();
+  modal.title.textContent = "Archive Bookmark (Save)";
+  modal.desc.textContent = "Copy this code to preserve your exact position in the archive:";
+  modal.input.value = code;
+  modal.input.readOnly = true;
+  modal.actionBtn.textContent = "Copy Code";
+  modal.actionBtn.onclick = () => {
+    navigator.clipboard.writeText(code);
+    modal.actionBtn.textContent = "Copied!";
+    setTimeout(() => { modal.actionBtn.textContent = "Copy Code"; }, 1600);
+  };
+  modal.backdrop.style.display = "flex";
+};
+
+modal.loadBtn.onclick = () => {
+  modal.title.textContent = "Restore Bookmark (Load)";
+  modal.desc.textContent = "Paste an archive code below to resume reading:";
+  modal.input.value = "";
+  modal.input.readOnly = false;
+  modal.actionBtn.textContent = "Restore";
+  modal.actionBtn.onclick = () => {
+    if(applySaveCode(modal.input.value)){
+      modal.backdrop.style.display = "none";
+    }
+  };
+  modal.backdrop.style.display = "flex";
+};
+
+modal.closeBtn.onclick = () => {
+  modal.backdrop.style.display = "none";
+};
+
+/* ================= PROCEDURAL WEB AUDIO ================= */
+
+let audioCtx = null;
+function playChime(choiceIndex){
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+
+    const freqs = [523.25, 466.16, 415.30, 392.00];
+    const freq = freqs[choiceIndex % freqs.length];
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.5);
+  } catch(e) {}
+}
+
+document.addEventListener('pointerdown', () => {
+  if(audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}, { once: true });
+
+/* ================= CANVAS EMBER MOTES ================= */
+
+(function embers(){
+  const canvas = document.getElementById('ember-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, motes = [];
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function resize(){
+    w = canvas.width = el.stage.clientWidth;
+    h = canvas.height = el.stage.clientHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function spawn(){
+    const count = reduceMotion ? 0 : 24;
+    motes = Array.from({length: count}, () => ({
+      x: Math.random() * w,
+      y: h + Math.random() * 40,
+      r: 0.6 + Math.random() * 1.6,
+      speed: 0.25 + Math.random() * 0.5,
+      drift: (Math.random() - 0.5) * 0.3,
+      alpha: 0.15 + Math.random() * 0.35
+    }));
+  }
+  spawn();
+
+  function colorForMood(){
+    if(el.stage.classList.contains('mood-magic')) return '79,154,143'; // wisplight
+    if(el.stage.classList.contains('mood-tense')) return '107,39,55';  // embercoal
+    return '212,172,110'; // brass
+  }
+
+  function tick(){
+    ctx.clearRect(0, 0, w, h);
+    const rgb = colorForMood();
+    motes.forEach(m => {
+      m.y -= m.speed;
+      m.x += m.drift;
+      if(m.y < -10){ m.y = h + 10; m.x = Math.random() * w; }
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(${rgb},${m.alpha})`;
+      ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    if(!reduceMotion) requestAnimationFrame(tick);
+  }
+  if(!reduceMotion) requestAnimationFrame(tick);
+})();
+
+// Start game
+renderNode('start');
+</script>
+
+</body>
+</html>

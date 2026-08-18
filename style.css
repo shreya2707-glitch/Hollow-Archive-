@@ -1,0 +1,442 @@
+/* ===========================================
+   1. DESIGN TOKENS & TYPOGRAPHY
+   =========================================== */
+:root {
+  --ink-night: #11131c;
+  --ink-deeper: #0a0b12;
+  --parchment: #ece3c8;
+  --parchment-dim: #d8cca6;
+  --brass: #b08d4f;
+  --brass-bright: #d4ac6e;
+  --embercoal: #6b2737;
+  --wisplight: #4f9a8f;
+  --text-dark: #241d13;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=EB+Garamond:ital@0;1&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--ink-deeper);
+  font-family: 'EB Garamond', serif;
+  overflow: hidden;
+}
+
+/* ===========================================
+   2. STAGE, BACKGROUNDS & AMBIENCE
+   =========================================== */
+#stage {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  background: radial-gradient(ellipse at 50% 20%, #232840 0%, var(--ink-night) 55%, var(--ink-deeper) 100%);
+  transition: background 1.2s ease;
+}
+
+/* Scene mood variants */
+#stage.mood-tense {
+  background: radial-gradient(ellipse at 50% 25%, #3a1620 0%, #1a0e11 55%, var(--ink-deeper) 100%);
+}
+
+#stage.mood-magic {
+  background: radial-gradient(ellipse at 50% 20%, #163531 0%, #0d1c1a 55%, var(--ink-deeper) 100%);
+}
+
+#stage.mood-warm {
+  background: radial-gradient(ellipse at 50% 20%, #2c2415 0%, #171207 55%, var(--ink-deeper) 100%);
+}
+
+/* Flickering candle glow */
+#candleglow {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 100%, rgba(212, 172, 110, 0.10), transparent 45%);
+  animation: flicker 3.6s infinite ease-in-out;
+  mix-blend-mode: screen;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 0.85; }
+  20%       { opacity: 1; }
+  35%       { opacity: 0.7; }
+  50%       { opacity: 0.95; }
+  70%       { opacity: 0.8; }
+  85%       { opacity: 1; }
+}
+
+/* Faint grain overlay */
+#grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Canvas for floating ember motes */
+#ember-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Screen shake effect for tense moments */
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  20%       { transform: translate(-3px, 2px); }
+  40%       { transform: translate(3px, -2px); }
+  60%       { transform: translate(-2px, -1px); }
+  80%       { transform: translate(2px, 1px); }
+}
+
+#stage.shake {
+  animation: shake 0.35s ease;
+}
+
+/* ===========================================
+   3. HEADERS & CONTROLS (TOP BAR)
+   =========================================== */
+#title-eyebrow {
+  position: absolute;
+  top: 34px; left: 0; right: 0;
+  text-align: center;
+  color: var(--brass);
+  letter-spacing: 0.35em;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-family: 'EB Garamond', serif;
+  opacity: 0.75;
+}
+
+#top-bar-controls {
+  position: absolute;
+  top: 32px;
+  right: 34px;
+  z-index: 6;
+  display: flex;
+  gap: 8px;
+}
+
+.top-bar-btn {
+  all: unset;
+  cursor: pointer;
+  color: var(--brass);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: 1px solid var(--brass);
+  padding: 5px 12px;
+  border-radius: 2px;
+  opacity: 0.75;
+  background: rgba(17, 19, 28, 0.6);
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.top-bar-btn:hover {
+  opacity: 1;
+  background: rgba(176, 141, 79, 0.15);
+}
+
+/* ===========================================
+   4. VISUAL NOVEL DIALOGUE BOX
+   =========================================== */
+#vn-box {
+  position: relative;
+  width: min(760px, 92vw);
+  margin-bottom: 36px;
+  background: linear-gradient(180deg, var(--parchment) 0%, var(--parchment-dim) 100%);
+  border: 1px solid var(--brass);
+  border-radius: 2px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  padding: 26px 30px 24px;
+  z-index: 2;
+}
+
+/* Wax seal accent mark */
+#vn-box::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 26px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--embercoal);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+#speaker {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  color: var(--embercoal);
+  margin-bottom: 6px;
+  min-height: 24px;
+}
+
+#vn-text {
+  color: var(--text-dark);
+  font-size: 19px;
+  line-height: 1.55;
+  min-height: 96px;
+  font-style: normal;
+  cursor: pointer;
+}
+
+#vn-text em {
+  color: var(--wisplight);
+  font-style: italic;
+}
+
+#choices {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.choice-btn {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--parchment);
+  background: linear-gradient(180deg, #22283a, #171b26);
+  border: 1px solid var(--brass);
+  padding: 11px 18px;
+  border-radius: 2px;
+  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.choice-btn:hover {
+  background: linear-gradient(180deg, #2c3348, #1c2130);
+  transform: translateX(4px);
+  box-shadow: 0 4px 14px rgba(176, 141, 79, 0.25);
+}
+
+.choice-btn:focus-visible {
+  outline: 2px solid var(--brass-bright);
+  outline-offset: 2px;
+}
+
+.choice-btn::before {
+  content: "— ";
+  color: var(--brass);
+}
+
+#advance-hint {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #7a6f52;
+  text-align: right;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  user-select: none;
+}
+
+#ending-tag {
+  font-family: 'Cormorant Garamond', serif;
+  text-align: center;
+  color: var(--brass-bright);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  font-size: 13px;
+  margin-bottom: 8px;
+  display: none;
+}
+
+#restart-wrap {
+  text-align: center;
+  margin-top: 14px;
+}
+
+#restart-btn {
+  all: unset;
+  cursor: pointer;
+  color: var(--brass);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--brass);
+  padding-bottom: 2px;
+}
+
+#restart-btn:hover {
+  color: var(--brass-bright);
+  border-color: var(--brass-bright);
+}
+
+#keyboard-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 11px;
+  color: #5a5342;
+  letter-spacing: 0.08em;
+  user-select: none;
+  z-index: 1;
+}
+
+/* ===========================================
+   5. BACKLOG & LOG PANEL
+   =========================================== */
+#log-panel {
+  display: none;
+  position: absolute;
+  top: 74px;
+  right: 34px;
+  z-index: 7;
+  width: min(400px, 86vw);
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--ink-deeper);
+  border: 1px solid var(--brass);
+  padding: 18px 20px;
+  border-radius: 2px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+}
+
+#log-panel.open {
+  display: block;
+}
+
+#log-panel .log-entry {
+  color: var(--parchment-dim);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(176, 141, 79, 0.15);
+  padding-bottom: 10px;
+}
+
+#log-panel .log-entry:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+#log-panel .log-speaker {
+  color: var(--brass-bright);
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+}
+
+/* ===========================================
+   6. SAVE/LOAD MODAL DIALOG
+   =========================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(10, 11, 18, 0.8);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-card {
+  width: min(460px, 90vw);
+  background: linear-gradient(180deg, var(--parchment) 0%, var(--parchment-dim) 100%);
+  border: 1px solid var(--brass);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+  padding: 24px;
+  border-radius: 2px;
+}
+
+.modal-header {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--embercoal);
+  margin-bottom: 6px;
+}
+
+.modal-sub {
+  font-size: 14px;
+  color: var(--text-dark);
+  margin: 0 0 12px;
+}
+
+#save-code-input {
+  width: 100%;
+  height: 75px;
+  resize: none;
+  background: #161822;
+  color: var(--parchment);
+  border: 1px solid var(--brass);
+  border-radius: 2px;
+  padding: 8px 10px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.modal-actions .choice-btn {
+  font-size: 15px;
+  padding: 7px 16px;
+}
+
+.modal-actions .choice-btn::before {
+  content: "";
+}
+
+/* ===========================================
+   7. RESPONSIVENESS & ACCESSIBILITY
+   =========================================== */
+@media (prefers-reduced-motion: reduce) {
+  #candleglow {
+    animation: none;
+  }
+  #stage.shake {
+    animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  #top-bar-controls {
+    top: 18px;
+    right: 18px;
+  }
+  #title-eyebrow {
+    top: 20px;
+  }
+  #vn-box {
+    padding: 20px 18px 18px;
+    margin-bottom: 28px;
+  }
+  #vn-text {
+    font-size: 17px;
+    min-height: 120px;
+  }
+  #speaker {
+    font-size: 18px;
+  }
+  #log-panel {
+    top: 60px;
+    right: 18px;
+  }
+}
