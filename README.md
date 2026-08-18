@@ -93,7 +93,55 @@ You play as **Isra Venn**, an archivist investigating the sudden disappearance o
 +--------+--------+      +--------+--------+
          |                        |
          v                        v
+## 📁 Project Structure
+
+```text
+the-hollow-archive/
+├── index.html       # Markup structure, modal layers, canvas, and layout
+├── style.css        # Custom CSS variables, typography, keyframes, and themes
+├── script.js        # Story state machine, typewriter, audio, and particle engine
+└── README.md        # Documentation
 +--------+--------+      +--------+--------+
 |  BASE64 ENGINE  |      | CANVAS 2D LOOP  |
 |  (Save / Load)  |      | (Ember Motes)   |
 +-----------------+      +-----------------+
+🚀 Quick StartNo package managers, build configurations, or dependencies are required.1. Clone the repositoryBashgit clone [https://github.com/your-username/the-hollow-archive.git](https://github.com/your-username/the-hollow-archive.git)
+cd the-hollow-archive
+2. LaunchDirect Execution: Double-click index.html to open the game in your default browser.Local Server (Optional):Bash# Python 3
+python3 -m http.server 8000
+
+# Node.js
+npx serve .
+🎮 Controls & ShortcutsActionControlAdvance / Skip LineLeft Click or Space / EnterSelect ChoiceClick Button or Number Keys 1–9View BacklogClick the LOG buttonSave BookmarkClick SAVE → Copy the generated Base64 stringLoad BookmarkClick LOAD → Paste the Base64 string → Click Restore💡 Engine Highlights1. Tokenized TypewriterStandard typewriter loops slice strings character-by-character, inadvertently breaking HTML tags (<e, <br) and triggering browser layout repaints. The engine tokenizes strings before animating:JavaScriptfunction tokenize(html) {
+  return html.match(/<[^>]+>|[^<]/g) || [];
+}
+2. Zero-Asset Procedural AudioSound is synthesized on demand without network overhead:JavaScriptfunction playChime(choiceIndex) {
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const freqs = [523.25, 466.16, 415.30, 392.00];
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freqs[choiceIndex % freqs.length], audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.5);
+}
+3. Sandbox-Safe Save / LoadTo ensure compatibility in strict environments where localStorage is disabled or throws origin errors (such as file:/// or sandboxed iframes), states are serialized via Base64:JavaScriptfunction generateSaveCode() {
+  const payload = { v: 1, node: currentNode, history: history, timestamp: Date.now() };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+}
+🛠️ Customization & ExtensibilityAdding new scenes to the game is as simple as inserting a new node into the STORY object in script.js:JavaScriptmy_custom_node: {
+  speaker: "Isra Venn",
+  mood: "magic", // Options: "warm", "tense", "magic"
+  text: "The ink on the parchment began to glow with a faint wisplight hue.",
+  choices: [
+    { label: "Step closer to read", next: "next_node_a" },
+    { label: "Step away and draw your lantern", next: "next_node_b" }
+  ]
+}
+🌐 Browser CompatibilityBrowserVersionSupport StatusGoogle Chrome70+Full SupportMozilla Firefox65+Full SupportApple Safari12+Full SupportMicrosoft Edge79+Full SupportMobile BrowsersiOS Safari / Chrome AndroidFull Support📜 LicenseThis project is open-source and released under the MIT License.
